@@ -1,5 +1,3 @@
-## go
-go run sc_record.go
+python sc_recorder_py - gpt4.py
 
-## python
-python3 sc_recorder_py.py
+感谢https://github.com/weridolin/stripchatRecorder
