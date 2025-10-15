@@ -1,0 +1,1 @@
+.\Python313\python.exe "sc_recorder_py - gpt4.py"

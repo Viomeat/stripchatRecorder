@@ -315,10 +315,11 @@ class Task(TaskMixin):
         else:
             logger.info(f"({self.model_name}) Writer done...")
 
-# ---------------- 下载速度统计 ----------------
+# ---------------- 下载速度统计（单行刷新） ----------------
 async def update_speed(task_list: list):
     while True:
         total_speed = 0.0
+        output_list = []
         for task in task_list:
             if task.stop_flag:
                 continue
@@ -327,10 +328,12 @@ async def update_speed(task_list: list):
                 task._speed = speed
                 task._last_bytes = task._downloaded_bytes
             total_speed += speed
-        # 输出日志
-        if task_list:
-            per_task_speed = " | ".join([f"{t.model_name}: {t._speed:.2f} MB/s" for t in task_list if not t.stop_flag])
-            logger.info(f"[Speed] {per_task_speed} | Total: {total_speed:.2f} MB/s")
+            output_list.append(f"{task.model_name}: {task._speed:.2f} MB/s")
+
+        if output_list:
+            line = " | ".join(output_list) + f" | Total: {total_speed:.2f} MB/s"
+            print(f"\r{line}", end="", flush=True)
+
         await asyncio.sleep(1)
 
 # ---------------- TaskManager ----------------
