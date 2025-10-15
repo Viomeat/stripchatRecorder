@@ -315,12 +315,12 @@ class Task(TaskMixin):
         else:
             logger.info(f"({self.model_name}) Writer done...")
 
-# ---------------- 下载速度统计（单行刷新） ----------------
-async def update_speed(task_list: list):
+# ---------------- 下载速度统计 ----------------
+async def update_speed(task_map: dict):
     while True:
-        total_speed = 0.0
         output_list = []
-        for task in task_list:
+        total_speed = 0.0
+        for task in task_map.values():
             if task.stop_flag:
                 continue
             with task._speed_lock:
@@ -329,11 +329,9 @@ async def update_speed(task_list: list):
                 task._last_bytes = task._downloaded_bytes
             total_speed += speed
             output_list.append(f"{task.model_name}: {task._speed:.2f} MB/s")
-
         if output_list:
             line = " | ".join(output_list) + f" | Total: {total_speed:.2f} MB/s"
             print(f"\r{line}", end="", flush=True)
-
         await asyncio.sleep(1)
 
 # ---------------- TaskManager ----------------
@@ -356,20 +354,19 @@ class TaskManager:
     async def run_forever(self):
         config = get_config(self.config)
         setup_logger(config.get('log', {}).get('level', 'INFO'))
-        task_list = []
 
         if config['proxy']['enable']:
             os.environ['HTTP_PROXY'] = config['proxy']['uri']
             os.environ['HTTPS_PROXY'] = config['proxy']['uri']
 
-        asyncio.create_task(update_speed(task_list))
+        asyncio.create_task(update_speed(self.task_map))
 
         while True:
             config = get_config(self.config)
             for model in config['models']:
-                task = Task(model['name'], config["save_dir"])
-                task_list.append(task)
-                self.add_task(task)
+                if model['name'] not in self.task_map:
+                    task = Task(model['name'], config["save_dir"])
+                    self.add_task(task)
             await asyncio.sleep(20)
 
 # ---------------- 启动入口 ----------------
